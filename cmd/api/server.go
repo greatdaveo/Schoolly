@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/greatdaveo/Schoolly/internal/api/middlewares"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,8 +58,9 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:      port,
-		Handler:   mux,
+		Addr: port,
+		// Handler:   middlewares.SecurityHeaders(mux),
+		Handler:   middlewares.Cors(mux),
 		TLSConfig: tlsConfig,
 	}
 
