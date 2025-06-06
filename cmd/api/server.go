@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/greatdaveo/Schoolly/internal/api/middlewares"
+	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +59,9 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr: port,
-		// Handler:   middlewares.SecurityHeaders(mux),
-		Handler:   middlewares.Cors(mux),
+		Addr:    port,
+		Handler: mw.ResponseTimeMiddleWare((middlewares.SecurityHeaders(mw.Cors(mux)))),
+		// Handler:   middlewares.Cors(mux),
 		TLSConfig: tlsConfig,
 	}
 
