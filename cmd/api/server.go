@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/greatdaveo/Schoolly/internal/api/middlewares"
 	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
@@ -58,9 +59,12 @@ func main() {
 		MinVersion: tls.VersionTLS12,
 	}
 
+	// Initialize the rate limiter
+	rl := mw.NewRateLimiter(5, time.Minute)
+
 	server := &http.Server{
 		Addr:    port,
-		Handler: mw.Compression(mw.ResponseTimeMiddleWare((middlewares.SecurityHeaders(mw.Cors(mux))))),
+		Handler: rl.RateLimiterMiddleware(mw.Compression(mw.ResponseTimeMiddleWare((middlewares.SecurityHeaders(mw.Cors(mux)))))),
 		// Handler:   middlewares.Cors(mux),
 		TLSConfig: tlsConfig,
 	}
