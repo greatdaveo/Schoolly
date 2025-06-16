@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/greatdaveo/Schoolly/internal/api/middlewares"
 	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
 )
 
@@ -27,14 +26,6 @@ func studentsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func execsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Query: ", r.URL.Query().Get("name"))
-	// To parse from data (necessary for x-www-form-urlencoded)
-	err := r.ParseForm()
-	if err != nil {
-		return
-	}
-
-	fmt.Println("Form from POST methods: ", r.Form)
 	w.Write([]byte("Hello Execs Routes is Working!"))
 }
 
@@ -73,7 +64,7 @@ func main() {
 		WhiteList:                   []string{"sortBy", "sortOrder", "name", "age", "class"},
 	}
 
-	secureMux := mw.Hpp(hppOptions)(rl.RateLimiterMiddleware(mw.Compression(mw.ResponseTimeMiddleWare((middlewares.SecurityHeaders(mw.Cors(mux)))))))
+	secureMux := mw.Cors(rl.RateLimiterMiddleware(mw.ResponseTimeMiddleWare(mw.SecurityHeaders(mw.Compression(mw.Hpp(hppOptions)(mux))))))
 
 	server := &http.Server{
 		Addr:    port,
