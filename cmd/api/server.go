@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/docker/api/server/router"
 	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
+	"github.com/greatdaveo/Schoolly/internal/api/router"
 )
 
 func main() {
