@@ -8,9 +8,17 @@ import (
 
 	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
 	"github.com/greatdaveo/Schoolly/internal/api/router"
+	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
 )
 
 func main() {
+
+	// Database Connection
+	_, err := sqlconnect.ConnectDB("dbeaver_testdb")
+	if err != nil {
+		fmt.Println("❌ Error ------ : ", err)
+		return
+	}
 
 	const port string = ":3000"
 
@@ -48,7 +56,7 @@ func main() {
 		TLSConfig: tlsConfig,
 	}
 
-	err := server.ListenAndServeTLS(cert, key)
+	err = server.ListenAndServeTLS(cert, key)
 
 	if err != nil {
 		log.Fatalln("Error starting the server", err)
