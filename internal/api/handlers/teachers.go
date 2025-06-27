@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,45 +13,14 @@ import (
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
 )
 
-var (
-	teachers = make(map[int]models.Teacher)
-	// mutex    = &sync.Mutex{}
-	nextID = 1
-)
-
-// To initialize some dummy data
-func init() {
-	teachers[nextID] = models.Teacher{
-		ID:        nextID,
-		FirstName: "John",
-		LastName:  "Doe",
-		Class:     "9A",
-		Subject:   "Math",
-	}
-	nextID++
-	teachers[nextID] = models.Teacher{
-		ID:        nextID,
-		FirstName: "Jane",
-		LastName:  "Smith",
-		Class:     "10A",
-		Subject:   "Biology",
-	}
-	nextID++
-	teachers[nextID] = models.Teacher{
-		ID:        nextID,
-		FirstName: "Dave",
-		LastName:  "Olowo",
-		Class:     "11A",
-		Subject:   "Accounting",
-	}
-}
-
 func TeacherHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		GetTeachers(w, r)
+		getTeachers(w, r)
 	case http.MethodPost:
-		AddTeacher(w, r)
+		addTeacher(w, r)
+	case http.MethodPut:
+		updateTeacher(w, r)
 	}
 }
 
@@ -70,7 +40,9 @@ func isValidSortField(field string) bool {
 	return validFIelds[field]
 }
 
-func GetTeachers(w http.ResponseWriter, r *http.Request) {
+// ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+func getTeachers(w http.ResponseWriter, r *http.Request) {
 
 	db, err := sqlconnect.ConnectDB()
 	if err != nil {
@@ -195,7 +167,9 @@ func addFilters(r *http.Request, query string, args []interface{}) (string, []in
 	return query, args
 }
 
-func AddTeacher(w http.ResponseWriter, r *http.Request) {
+// :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+func addTeacher(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlconnect.ConnectDB()
 	if err != nil {
 		http.Error(w, "❌ Error connecting to DB", http.StatusInternalServerError)
@@ -252,4 +226,72 @@ func AddTeacher(w http.ResponseWriter, r *http.Request) {
 		Data:   addedTeachers,
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+// :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+func updateTeacher(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/teachers/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "❌ Invalid teacher ID", http.StatusBadRequest)
+		return
+	}
+
+	var updatedTeacher models.Teacher
+	err = json.NewDecoder(r.Body).Decode(&updatedTeacher)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "❌ Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "❌ Unable to connect to DB", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var existingTeacher models.Teacher
+	err = db.QueryRow(
+		"SELECT id, first_name, last_name, email, class, subject FROM teachers WHERE id = ?", id,
+		).Scan(
+			&existingTeacher.ID, 
+			&existingTeacher.FirstName, 
+			&existingTeacher.LastName, 
+			&existingTeacher.Email, 
+			&existingTeacher.Class, 
+			&existingTeacher.Subject,
+		)
+
+	if err == sql.ErrNoRows {
+		http.Error(w, "❌ Teacher not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		log.Println(err)
+		http.Error(w, "❌ Unable to retrieve data", http.StatusInternalServerError)
+		return
+	}
+
+	updatedTeacher.ID = existingTeacher.ID
+	_, err = db.Exec(
+		"UPDATE teachers SET first_name = ?, last_name = ?, email = ?, class = ?, subject = ? WHERE id = ?",
+		updatedTeacher.FirstName,
+		updatedTeacher.LastName,
+		updatedTeacher.Email,
+		updatedTeacher.Class,
+		updatedTeacher.Subject,
+		updatedTeacher.ID,
+	)
+
+	if err != nil {
+		fmt.Println("❌ Error updating teacher: ", err)
+		http.Error(w, "❌ Error updating teacher", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedTeacher)
 }
