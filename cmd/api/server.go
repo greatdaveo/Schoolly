@@ -23,7 +23,7 @@ func main() {
 	// Database Connection
 	_, err = sqlconnect.ConnectDB()
 	if err != nil {
-		fmt.Println("❌ Error ------ : ", err)
+		fmt.Println("❌ Database Connection Error ------ : ", err)
 		return
 	}
 
@@ -31,7 +31,7 @@ func main() {
 	cert := "cert.pem"
 	key := "key.pem"
 
-	PORT := os.Getenv("PORT")
+	PORT := os.Getenv("API_PORT")
 
 	// To create a TLS custom server
 	tlsConfig := &tls.Config{

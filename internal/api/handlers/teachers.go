@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/greatdaveo/Schoolly/internal/models"
+	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
 )
 
 var (
@@ -109,23 +110,49 @@ func GetTeachers(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddTeacher(w http.ResponseWriter, r *http.Request) {
-	mutex.Lock()
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		http.Error(w, "❌ Error connecting to DB", http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("✅ DATABASE  ----", db)
 
-	defer mutex.Unlock()
+	defer db.Close()
 
 	var newTeachers []models.Teacher
-	err := json.NewDecoder(r.Body).Decode(&newTeachers)
+	err = json.NewDecoder(r.Body).Decode(&newTeachers)
 	if err != nil {
-		http.Error(w, "Invalid Request Body", http.StatusBadRequest)
+		http.Error(w, "❌ Invalid Request Body", http.StatusBadRequest)
 		return
 	}
 
+	stmt, err := db.Prepare("INSERT INTO teachers (first_name, last_name, email, class, subject) VALUES (?,?,?,?,?);")
+	// fmt.Println("DATABASE STMT Err ----", err)
+
+	if err != nil {
+		http.Error(w, "❌ Error in preparing SQL query", http.StatusInternalServerError)
+		return
+	}
+	defer stmt.Close()
+
 	addedTeachers := make([]models.Teacher, len(newTeachers))
 	for i, newTeacher := range newTeachers {
-		newTeacher.ID = nextID
-		teachers[nextID] = newTeacher
+		res, err := stmt.Exec(newTeacher.FirstName, newTeacher.LastName, newTeacher.Email, newTeacher.Class, newTeacher.Subject)
+		if err != nil {
+			http.Error(w, "❌ Error inserting data into database", http.StatusInternalServerError)
+			return
+		}
+
+		// To get the id of this entry
+		lastID, err := res.LastInsertId()
+		if err != nil {
+			http.Error(w, "❌ Error getting last insert ID", http.StatusInternalServerError)
+			return
+		}
+
+		newTeacher.ID = int(lastID)
+		// To add to the teacher list
 		addedTeachers[i] = newTeacher
-		nextID++
 	}
 
 	w.Header().Set("Content-Type", "application/json")
