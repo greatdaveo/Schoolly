@@ -5,28 +5,33 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
 	"github.com/greatdaveo/Schoolly/internal/api/router"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// For .env
+	err := godotenv.Load()
+	if err != nil {
+		return
+	}
 
 	// Database Connection
-	_, err := sqlconnect.ConnectDB("dbeaver_testdb")
+	_, err = sqlconnect.ConnectDB()
 	if err != nil {
 		fmt.Println("❌ Error ------ : ", err)
 		return
 	}
 
-	const port string = ":3000"
-
 	// To load the cert file
 	cert := "cert.pem"
 	key := "key.pem"
 
-	fmt.Println("Server Listening on port: ", port)
+	PORT := os.Getenv("PORT")
 
 	// To create a TLS custom server
 	tlsConfig := &tls.Config{
@@ -50,12 +55,13 @@ func main() {
 
 	// To create custom server
 	server := &http.Server{
-		Addr:    port,
+		Addr:    PORT,
 		Handler: secureMux,
 		// Handler:   middlewares.Cors(mux),
 		TLSConfig: tlsConfig,
 	}
 
+	fmt.Println("Server Listening on port: ", PORT)
 	err = server.ListenAndServeTLS(cert, key)
 
 	if err != nil {
