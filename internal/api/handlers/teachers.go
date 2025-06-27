@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/greatdaveo/Schoolly/internal/models"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
@@ -15,8 +14,8 @@ import (
 
 var (
 	teachers = make(map[int]models.Teacher)
-	mutex    = &sync.Mutex{}
-	nextID   = 1
+	// mutex    = &sync.Mutex{}
+	nextID = 1
 )
 
 // To initialize some dummy data
@@ -74,15 +73,39 @@ func GetTeachers(w http.ResponseWriter, r *http.Request) {
 		firstName := r.URL.Query().Get("first_name")
 		lastName := r.URL.Query().Get("last_name")
 
-		fmt.Println(firstName, lastName)
+		// fmt.Println(firstName, lastName)
+
+		query := "SELECT id, first_name, last_name, email, class, subject FROM teachers WHERE 1=1"
+		var args []interface{}
+
+		if firstName != "" {
+			query += " AND first_name = ?"
+			args = append(args, firstName)
+		}
+		if lastName != "" {
+			query += " AND last_name = ?"
+			args = append(args, lastName)
+		}
+
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, "❌ Database query error", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
 
 		// To change teacher to a slice
-		teacherList := make([]models.Teacher, 0, len(teachers))
-		for _, teacher := range teachers {
-			if (firstName == "" || teacher.FirstName == firstName) &&
-				(lastName == "" || teacher.LastName == lastName) {
-				teacherList = append(teacherList, teacher)
+		teacherList := make([]models.Teacher, 0)
+		// To loop through any possible rows if it is more than one rows
+		for rows.Next() {
+			var teacher models.Teacher
+			err := rows.Scan(&teacher.ID, &teacher.FirstName, &teacher.LastName, &teacher.Email, &teacher.Class, &teacher.Subject)
+			if err != nil {
+				http.Error(w, "❌ Error scanning Database results", http.StatusInternalServerError)
+				return
 			}
+			teacherList = append(teacherList, teacher)
 		}
 
 		response := struct {

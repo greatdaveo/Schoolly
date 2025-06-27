@@ -1,0 +1,338 @@
+[
+  {
+    "first_name": "Alice",
+    "last_name": "Brown",
+    "email": "alice.brown@example.com",
+    "class": "9A",
+    "subject": "World History"
+  },
+  {
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "john.smith@example.com",
+    "class": "10B",
+    "subject": "Mathematics"
+  },
+  {
+    "first_name": "Mary",
+    "last_name": "Johnson",
+    "email": "mary.johnson@example.com",
+    "class": "8C",
+    "subject": "Biology"
+  },
+  {
+    "first_name": "James",
+    "last_name": "Williams",
+    "email": "james.williams@example.com",
+    "class": "7A",
+    "subject": "Chemistry"
+  },
+  {
+    "first_name": "Patricia",
+    "last_name": "Jones",
+    "email": "patricia.jones@example.com",
+    "class": "11A",
+    "subject": "Physics"
+  },
+  {
+    "first_name": "Robert",
+    "last_name": "Garcia",
+    "email": "robert.garcia@example.com",
+    "class": "12C",
+    "subject": "Geography"
+  },
+  {
+    "first_name": "Linda",
+    "last_name": "Miller",
+    "email": "linda.miller@example.com",
+    "class": "9B",
+    "subject": "Economics"
+  },
+  {
+    "first_name": "Michael",
+    "last_name": "Davis",
+    "email": "michael.davis@example.com",
+    "class": "10A",
+    "subject": "Literature"
+  },
+  {
+    "first_name": "Barbara",
+    "last_name": "Rodriguez",
+    "email": "barbara.rodriguez@example.com",
+    "class": "8B",
+    "subject": "Computer Science"
+  },
+  {
+    "first_name": "William",
+    "last_name": "Martinez",
+    "email": "william.martinez@example.com",
+    "class": "7C",
+    "subject": "English"
+  },
+  {
+    "first_name": "Elizabeth",
+    "last_name": "Hernandez",
+    "email": "elizabeth.hernandez@example.com",
+    "class": "6A",
+    "subject": "Music"
+  },
+  {
+    "first_name": "David",
+    "last_name": "Lopez",
+    "email": "david.lopez@example.com",
+    "class": "11B",
+    "subject": "Art"
+  },
+  {
+    "first_name": "Jennifer",
+    "last_name": "Gonzalez",
+    "email": "jennifer.gonzalez@example.com",
+    "class": "9C",
+    "subject": "Civic Education"
+  },
+  {
+    "first_name": "Richard",
+    "last_name": "Wilson",
+    "email": "richard.wilson@example.com",
+    "class": "10C",
+    "subject": "Commerce"
+  },
+  {
+    "first_name": "Susan",
+    "last_name": "Anderson",
+    "email": "susan.anderson@example.com",
+    "class": "8A",
+    "subject": "Business Studies"
+  },
+  {
+    "first_name": "Joseph",
+    "last_name": "Thomas",
+    "email": "joseph.thomas@example.com",
+    "class": "7B",
+    "subject": "Home Economics"
+  },
+  {
+    "first_name": "Jessica",
+    "last_name": "Taylor",
+    "email": "jessica.taylor@example.com",
+    "class": "6B",
+    "subject": "Physical Education"
+  },
+  {
+    "first_name": "Charles",
+    "last_name": "Moore",
+    "email": "charles.moore@example.com",
+    "class": "12A",
+    "subject": "Government"
+  },
+  {
+    "first_name": "Sarah",
+    "last_name": "Jackson",
+    "email": "sarah.jackson@example.com",
+    "class": "11C",
+    "subject": "French"
+  },
+  {
+    "first_name": "Christopher",
+    "last_name": "Martin",
+    "email": "christopher.martin@example.com",
+    "class": "10B",
+    "subject": "Accounting"
+  },
+  {
+    "first_name": "Karen",
+    "last_name": "Lee",
+    "email": "karen.lee@example.com",
+    "class": "9A",
+    "subject": "Literature"
+  },
+  {
+    "first_name": "Daniel",
+    "last_name": "Perez",
+    "email": "daniel.perez@example.com",
+    "class": "8C",
+    "subject": "Mathematics"
+  },
+  {
+    "first_name": "Nancy",
+    "last_name": "Thompson",
+    "email": "nancy.thompson@example.com",
+    "class": "7A",
+    "subject": "Physics"
+  },
+  {
+    "first_name": "Matthew",
+    "last_name": "White",
+    "email": "matthew.white@example.com",
+    "class": "6C",
+    "subject": "English"
+  },
+  {
+    "first_name": "Margaret",
+    "last_name": "Harris",
+    "email": "margaret.harris@example.com",
+    "class": "12B",
+    "subject": "World History"
+  },
+  {
+    "first_name": "Anthony",
+    "last_name": "Sanchez",
+    "email": "anthony.sanchez@example.com",
+    "class": "11A",
+    "subject": "Social Studies"
+  },
+  {
+    "first_name": "Lisa",
+    "last_name": "Clark",
+    "email": "lisa.clark@example.com",
+    "class": "10C",
+    "subject": "Geography"
+  },
+  {
+    "first_name": "Donald",
+    "last_name": "Ramirez",
+    "email": "donald.ramirez@example.com",
+    "class": "9B",
+    "subject": "Chemistry"
+  },
+  {
+    "first_name": "Betty",
+    "last_name": "Lewis",
+    "email": "betty.lewis@example.com",
+    "class": "8B",
+    "subject": "Accounting"
+  },
+  {
+    "first_name": "Mark",
+    "last_name": "Robinson",
+    "email": "mark.robinson@example.com",
+    "class": "7C",
+    "subject": "Civic Education"
+  },
+  {
+    "first_name": "Sandra",
+    "last_name": "Walker",
+    "email": "sandra.walker@example.com",
+    "class": "6A",
+    "subject": "Art"
+  },
+  {
+    "first_name": "Paul",
+    "last_name": "Young",
+    "email": "paul.young@example.com",
+    "class": "11B",
+    "subject": "French"
+  },
+  {
+    "first_name": "Ashley",
+    "last_name": "Allen",
+    "email": "ashley.allen@example.com",
+    "class": "9C",
+    "subject": "Music"
+  },
+  {
+    "first_name": "Steven",
+    "last_name": "King",
+    "email": "steven.king@example.com",
+    "class": "10A",
+    "subject": "Economics"
+  },
+  {
+    "first_name": "Kimberly",
+    "last_name": "Wright",
+    "email": "kimberly.wright@example.com",
+    "class": "8A",
+    "subject": "Home Economics"
+  },
+  {
+    "first_name": "Andrew",
+    "last_name": "Scott",
+    "email": "andrew.scott@example.com",
+    "class": "7B",
+    "subject": "Mathematics"
+  },
+  {
+    "first_name": "Donna",
+    "last_name": "Torres",
+    "email": "donna.torres@example.com",
+    "class": "6B",
+    "subject": "Computer Science"
+  },
+  {
+    "first_name": "Joshua",
+    "last_name": "Nguyen",
+    "email": "joshua.nguyen@example.com",
+    "class": "12C",
+    "subject": "Literature"
+  },
+  {
+    "first_name": "Emily",
+    "last_name": "Hill",
+    "email": "emily.hill@example.com",
+    "class": "11C",
+    "subject": "Social Studies"
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Flores",
+    "email": "kevin.flores@example.com",
+    "class": "10B",
+    "subject": "Geography"
+  },
+  {
+    "first_name": "Michelle",
+    "last_name": "Green",
+    "email": "michelle.green@example.com",
+    "class": "9A",
+    "subject": "Government"
+  },
+  {
+    "first_name": "Brian",
+    "last_name": "Adams",
+    "email": "brian.adams@example.com",
+    "class": "8C",
+    "subject": "Commerce"
+  },
+  {
+    "first_name": "Laura",
+    "last_name": "Nelson",
+    "email": "laura.nelson@example.com",
+    "class": "7A",
+    "subject": "English"
+  },
+  {
+    "first_name": "Edward",
+    "last_name": "Baker",
+    "email": "edward.baker@example.com",
+    "class": "6C",
+    "subject": "Chemistry"
+  },
+  {
+    "first_name": "Amy",
+    "last_name": "Hall",
+    "email": "amy.hall@example.com",
+    "class": "12A",
+    "subject": "Physics"
+  },
+  {
+    "first_name": "Ronald",
+    "last_name": "Rivera",
+    "email": "ronald.rivera@example.com",
+    "class": "11A",
+    "subject": "Biology"
+  },
+  {
+    "first_name": "Angela",
+    "last_name": "Campbell",
+    "email": "angela.campbell@example.com",
+    "class": "10C",
+    "subject": "World History"
+  },
+  {
+    "first_name": "Jason",
+    "last_name": "Mitchell",
+    "email": "jason.mitchell@example.com",
+    "class": "9B",
+    "subject": "Mathematics"
+  }
+]
