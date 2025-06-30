@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -328,7 +329,7 @@ func editTeacherSingleData(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	var existingTeacher models.Teacher
-	err = db.QueryRow(
+	db.QueryRow(
 		"SELECT id, first_name, last_name, email, class, subject FROM teachers WHERE id = ?", id,
 	).Scan(
 		&existingTeacher.ID,
@@ -340,18 +341,36 @@ func editTeacherSingleData(w http.ResponseWriter, r *http.Request) {
 	)
 
 	// To update the teacher data
+	// for k, v := range input {
+	// 	switch k {
+	// 	case "first_name":
+	// 		existingTeacher.FirstName = v.(string)
+	// 	case "last_name":
+	// 		existingTeacher.LastName = v.(string)
+	// 	case "email":
+	// 		existingTeacher.Email = v.(string)
+	// 	case "class":
+	// 		existingTeacher.Class = v.(string)
+	// 	case "subject":
+	// 		existingTeacher.Subject = v.(string)
+	// 	}
+	// }
+
+	// To apply update using reflect package
+	teacherVal := reflect.ValueOf(&existingTeacher).Elem()
+	teacherType := teacherVal.Type()
+
 	for k, v := range input {
-		switch k {
-		case "first_name":
-			existingTeacher.FirstName = v.(string)
-		case "last_name":
-			existingTeacher.LastName = v.(string)
-		case "email":
-			existingTeacher.Email = v.(string)
-		case "class":
-			existingTeacher.Class = v.(string)
-		case "subject":
-			existingTeacher.Subject = v.(string)
+		for i := 0; i < teacherVal.NumField(); i++ {
+			// fmt.Println("k from reflect mechanism", k)
+			field := teacherType.Field(i)
+			field.Tag.Get("json")
+
+			if field.Tag.Get("json") == k+" ,omitempty" {
+				if teacherVal.Field((i)).CanSet() {
+					teacherVal.Field(i).Set(reflect.ValueOf(v).Convert(teacherVal.Field(i).Type()))
+				}
+			}
 		}
 	}
 
@@ -364,6 +383,12 @@ func editTeacherSingleData(w http.ResponseWriter, r *http.Request) {
 		existingTeacher.Subject,
 		existingTeacher.ID,
 	)
+
+	if err != nil {
+		fmt.Println("❌ Error updating teacher: ", err)
+		http.Error(w, "❌ Error updating teacher", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(existingTeacher)
