@@ -666,3 +666,95 @@ func DeleteTeachersHandler(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 }
+
+// To get the list of students for a specific teacher
+func GetStudentsForATeacher(w http.ResponseWriter, r *http.Request) {
+	teacherId := r.PathValue("id")
+
+	var students []models.Student
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+
+	query := `SELECT id, first_name, last_name, email, class FROM students WHERE class = (SELECT class from teachers WHERE id = ?)`
+	rows, err := db.Query(query, teacherId)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+
+	for rows.Next() {
+		var student models.Student
+		err := rows.Scan(
+			&student.ID,
+			&student.FirstName,
+			&student.LastName,
+			&student.Email,
+			&student.Class,
+		)
+
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		students = append(students, student)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	response := struct {
+		Status string           `json:"status"`
+		Count  int              `json:"count"`
+		Data   []models.Student `json:"data"`
+	}{
+		Status: "success",
+		Count:  len(students),
+		Data:   students,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+
+}
+
+func CountStudentsForATeacher(w http.ResponseWriter, r *http.Request) {
+	teacherId := r.PathValue("id")
+
+	var studentCount int
+
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		// log.Println(err)
+		return
+	}
+	defer db.Close()
+
+	query := `SELECT COUNT(*) FROM students WHERE class = (SELECT class FROM teachers WHERE id = ?)`
+
+	err = db.QueryRow(query, teacherId).Scan(&studentCount)
+	if err != nil {
+		// log.Println(err)
+		return
+	}
+
+	response := struct {
+		Status string `json:"status"`
+		Count  int    `json:"count"`
+	}{
+		Status: "success",
+		Count:  studentCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+
+}
