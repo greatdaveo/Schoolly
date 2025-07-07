@@ -50,7 +50,7 @@ func main() {
 
 	// secureMux := mw.Cors(rl.RateLimiterMiddleware(mw.ResponseTimeMiddleWare(mw.SecurityHeaders(mw.Compression(mw.Hpp(hppOptions)(mux))))))
 	// secureMux := utils.ApplyMiddlewares(mux, mw.Hpp(hppOptions), mw.Compression, mw.SecurityHeaders, mw.ResponseTimeMiddleWare, rl.RateLimiterMiddleware, mw.Cors)
-	router := router.Router()
+	router := router.MainRouter()
 	secureMux := mw.SecurityHeaders(router)
 
 	// To create custom server
