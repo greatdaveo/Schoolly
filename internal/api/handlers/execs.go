@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +16,7 @@ import (
 	"github.com/greatdaveo/Schoolly/internal/models"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
 	"github.com/greatdaveo/Schoolly/pkg/utils"
+	"golang.org/x/crypto/argon2"
 )
 
 // To get multiple execs
@@ -199,7 +203,29 @@ func AddExecsHandler(w http.ResponseWriter, r *http.Request) {
 
 	addedExecss := make([]models.Exec, len(newExecs))
 	for i, newExec := range newExecs {
-		// res, err := stmt.Exec(newExec.FirstName, newExec.LastName, newExec.Email)
+		if newExec.Password == "" {
+			// http.Error(w, "Please enter password", http.StatusBadRequest)
+			utils.ErrorHandler(errors.New("❌ password is blank"), "❌ Please enter password")
+			return
+		}
+
+		// To hash the password
+		salt := make([]byte, 16)
+		_, err := rand.Read(salt)
+		if err != nil {
+			utils.ErrorHandler(errors.New("❌ failed to generate salt"), "❌ Error adding data")
+			return
+		}
+		// For Hashing
+		hash := argon2.IDKey([]byte(newExec.Password), salt, 1, 64*1024, 4, 32)
+		// To encode the salt
+		saltBase64 := base64.StdEncoding.EncodeToString(salt)
+		hashBase64 := base64.StdEncoding.EncodeToString(hash)
+
+		encodedHash := fmt.Sprintf("%s.%s", saltBase64, hashBase64)
+		// To override the password field with the hashed password
+		newExec.Password = encodedHash
+
 		values := utils.GetStructValues(newExec)
 		res, err := stmt.Exec(values...)
 		if err != nil {
