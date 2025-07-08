@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -12,6 +13,8 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/greatdaveo/Schoolly/internal/models"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
@@ -510,6 +513,138 @@ func DeleteOneExecHandler(w http.ResponseWriter, r *http.Request) {
 	}{
 		Status: "Exec successfully deleted",
 		ID:     id,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	var req models.Exec
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "❌ Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	if req.Username == "" || req.Password == "" {
+		http.Error(w, "❌ Username and Password are required", http.StatusBadRequest)
+		return
+	}
+
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Unable to connect to database")
+		http.Error(w, "❌ Unable to connect to database", http.StatusNotFound)
+
+		return
+	}
+
+	user := &models.Exec{}
+
+	defer db.Close()
+
+	err = db.QueryRow(
+		`SELECT id, first_name, last_name, email, username, password, inactive_status, role FROM execs WHERE username = ?`,
+		req.Username,
+	).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Username,
+		&user.Password,
+		&user.InactiveStatus,
+		&user.Role,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.ErrorHandler(err, "❌ User not found")
+			http.Error(w, "User not found", http.StatusNotFound)
+		}
+		http.Error(w, "database query error", http.StatusBadRequest)
+		return
+	}
+
+	if user.InactiveStatus {
+		http.Error(w, "Account is inactive", http.StatusForbidden)
+		return
+	}
+
+	parts := strings.Split(user.Password, ".")
+	if len(parts) != 2 {
+		utils.ErrorHandler(errors.New("❌ invalid Encoded hash format"), "❌ Invalid Encoded hash format")
+		http.Error(w, "❌ invalid Encoded hash format", http.StatusForbidden)
+		return
+	}
+
+	saltBase64 := parts[0]
+	hashedPasswordBase64 := parts[1]
+
+	salt, err := base64.StdEncoding.DecodeString(saltBase64)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ failed to decode the salt")
+		http.Error(w, "❌ failed to decode the salt", http.StatusForbidden)
+		return
+	}
+
+	hashedPassword, err := base64.StdEncoding.DecodeString(hashedPasswordBase64)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ failed to decode the hashed password")
+		http.Error(w, "❌ failed to decode the hashed password", http.StatusForbidden)
+		return
+	}
+
+	// For Hashing
+	hash := argon2.IDKey([]byte(req.Password), salt, 1, 64*1024, 4, 32)
+	if len(hash) != len(hashedPassword) {
+		utils.ErrorHandler(errors.New("❌ incorrect password"), "❌ incorrect password")
+		http.Error(w, "❌ incorrect password", http.StatusForbidden)
+		return
+	}
+
+	if subtle.ConstantTimeCompare(hash, hashedPassword) == 1 {
+		// do nothing
+	} else {
+		utils.ErrorHandler(errors.New("❌ incorrect password"), "❌ incorrect password")
+		http.Error(w, "❌ incorrect password", http.StatusForbidden)
+		return
+	}
+
+	// To generate JWT Token
+	tokenString, err := utils.SignToken(user.ID, req.Username, user.Role)
+	if err != nil {
+		http.Error(w, "❌ Could not create login token", http.StatusInternalServerError)
+		return
+	}
+
+	// To send token as response or as a cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "Bearer",
+		Value:    tokenString,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  time.Now().Add(72 * time.Hour),
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "test",
+		Value:    "testing",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  time.Now().Add(72 * time.Hour),
+	})
+
+	// Request Body
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	response := struct {
+		Token string `json:"token"`
+	}{
+		Token: tokenString,
 	}
 
 	json.NewEncoder(w).Encode(response)

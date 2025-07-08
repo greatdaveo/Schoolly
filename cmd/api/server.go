@@ -10,6 +10,7 @@ import (
 	mw "github.com/greatdaveo/Schoolly/internal/api/middlewares"
 	"github.com/greatdaveo/Schoolly/internal/api/router"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
+	"github.com/greatdaveo/Schoolly/pkg/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -23,6 +24,7 @@ func main() {
 	// Database Connection
 	_, err = sqlconnect.ConnectDB()
 	if err != nil {
+		utils.ErrorHandler(err, "❌ Database Connection Error ------ ")
 		fmt.Println("❌ Database Connection Error ------ : ", err)
 		return
 	}
