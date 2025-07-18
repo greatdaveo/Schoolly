@@ -741,12 +741,12 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// To encode token
-	log.Println("tokenBytes: ", tokenBytes)
+	// log.Println("tokenBytes: ", tokenBytes)
 	token := hex.EncodeToString(tokenBytes)
-	log.Println("token", token)
+	// log.Println("token", token)
 
 	hashedToken := sha256.Sum256(tokenBytes)
-	log.Println("hashedToken: ", hashedToken)
+	// log.Println("hashedToken: ", hashedToken)
 
 	// To encode the hashed token to a string
 	hashedTokenString := hex.EncodeToString(hashedToken[:])
@@ -778,4 +778,75 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	// To response with success message
 	fmt.Fprintf(w, "Password reset link sent to %s", req.Email)
+}
+
+func ResetPassword(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("resetcode")
+
+	type request struct {
+		NewPassword     string `json:"new_password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+
+	var req request
+	// To decode the request into the struct
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "❌ Invalid values in request", http.StatusBadRequest)
+		return
+	}
+
+	if req.NewPassword == "" || req.ConfirmPassword == "" {
+		http.Error(w, "❌ Enter new password and confirm password", http.StatusBadRequest)
+		return
+	}
+
+	if req.NewPassword != req.ConfirmPassword {
+		http.Error(w, "❌ Password should match", http.StatusBadRequest)
+		return
+	}
+	// To decode the token string to a byte slice
+	tokenBytes, err := hex.DecodeString(token)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Internal error")
+		return
+	}
+
+	// To use the byte slice to create a hashed token
+	hashedToken := sha256.Sum256(tokenBytes)
+	hashedTokenString := hex.EncodeToString(hashedToken[:])
+
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Internal error")
+		return
+	}
+
+	var user models.Exec
+
+	query := "SELECT id, email FROM execs WHERE password_reset_token = ? AND password_token_expires > ?"
+	err = db.QueryRow(query, hashedTokenString, time.Now().Format(time.RFC3339)).Scan(
+		&user.ID, &user.Email,
+	)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Invalid or expired reset code")
+		return
+	}
+
+	// To hash the new password
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Internal error")
+		return
+	}
+
+	updateQuery := "UPDATE execs SET password = ?, password_reset_token = NULL, password_token_expires = NULL, password_changed_at = ? WHERE id = ?"
+	_, err = db.Exec(updateQuery, hashedPassword, time.Now().Format(time.RFC3339), user.ID)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Internal error")
+		return
+	}
+
+	fmt.Fprintln(w, "Password reset successfully")
+
 }
