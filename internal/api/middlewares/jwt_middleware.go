@@ -55,10 +55,9 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		}
 
 		claims, ok := parsedToken.Claims.(jwt.MapClaims)
-		if ok {
-			fmt.Println(claims["uid"], claims["exp"], claims["role"])
-		} else {
-			http.Error(w, "❌ Invalid LoginToken", http.StatusUnauthorized)
+		if !ok {
+			http.Error(w, "❌ Invalid Login Token", http.StatusUnauthorized)
+			log.Println("❌ Invalid Login Token: ", token)
 			return
 		}
 
