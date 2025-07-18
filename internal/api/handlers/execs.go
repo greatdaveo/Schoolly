@@ -1,16 +1,21 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/go-mail/mail/v2"
 	"github.com/greatdaveo/Schoolly/internal/models"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
 	"github.com/greatdaveo/Schoolly/pkg/utils"
@@ -688,4 +693,89 @@ func UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+func ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Invalid request body")
+		return
+	}
+	r.Body.Close()
+
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Internal error")
+		return
+	}
+	defer db.Close()
+
+	var exec models.Exec
+	err = db.QueryRow("SELECT id FROM execs WHERE email = ?", req.Email).Scan(&exec.ID)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ User not found")
+		return
+	}
+
+	// To send the password reset token
+	duration, err := strconv.Atoi(os.Getenv("RESET_TOKEN_EXP_DURATION"))
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Failed to send password reset email")
+		return
+	}
+
+	mins := time.Duration(duration)
+
+	expiry := time.Now().Add(mins * time.Minute).Format(time.RFC3339)
+
+	// To set token
+	tokenBytes := make([]byte, 32)
+	rand.Read(tokenBytes)
+	_, err = rand.Read(tokenBytes)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Failed to send password reset email")
+		return
+	}
+
+	// To encode token
+	log.Println("tokenBytes: ", tokenBytes)
+	token := hex.EncodeToString(tokenBytes)
+	log.Println("token", token)
+
+	hashedToken := sha256.Sum256(tokenBytes)
+	log.Println("hashedToken: ", hashedToken)
+
+	// To encode the hashed token to a string
+	hashedTokenString := hex.EncodeToString(hashedToken[:])
+
+	_, err = db.Exec("UPDATE execs SET password_reset_token = ?, password_token_expires = ? WHERE id = ?",
+		hashedTokenString, expiry, exec.ID,
+	)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Failed to send password reset email")
+		return
+	}
+
+	// To send the email
+	resetUrl := fmt.Sprintf("https://localhost:3000/execs/reset-password/reset/%s", token)
+	message := fmt.Sprintf("Forgot your password? Reset your password using the following link: \n%s\nIf you did'nt request a password reset, please ignore this email. This link is only valid for %d minutes.", resetUrl, int(mins))
+
+	m := mail.NewMessage()
+	m.SetHeader("From", "admin@schoolly.com")
+	m.SetHeader("To", req.Email)
+	m.SetHeader("Subject", "Your password reset link")
+	m.SetBody("text/plain", message)
+
+	dialer := mail.NewDialer("localhost", 1025, "", "")
+	err = dialer.DialAndSend(m)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ Failed to send password reset email")
+		return
+	}
+
+	// To response with success message
+	fmt.Fprintf(w, "Password reset link sent to %s", req.Email)
 }
