@@ -1,25 +1,19 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"crypto/subtle"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/greatdaveo/Schoolly/internal/models"
 	"github.com/greatdaveo/Schoolly/internal/models/repositories/sqlconnect"
 	"github.com/greatdaveo/Schoolly/pkg/utils"
-	"golang.org/x/crypto/argon2"
 )
 
 // To get multiple execs
@@ -204,30 +198,14 @@ func AddExecsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer stmt.Close()
 
-	addedExecss := make([]models.Exec, len(newExecs))
+	addedExecs := make([]models.Exec, len(newExecs))
 	for i, newExec := range newExecs {
-		if newExec.Password == "" {
-			// http.Error(w, "Please enter password", http.StatusBadRequest)
-			utils.ErrorHandler(errors.New("❌ password is blank"), "❌ Please enter password")
-			return
-		}
-
-		// To hash the password
-		salt := make([]byte, 16)
-		_, err := rand.Read(salt)
+		// FOR HASHING THE PASSWORD
+		newExec.Password, err = utils.HashPassword(newExec.Password)
 		if err != nil {
-			utils.ErrorHandler(errors.New("❌ failed to generate salt"), "❌ Error adding data")
+			utils.ErrorHandler(err, "❌ Error adding new exec into database")
 			return
 		}
-		// For Hashing
-		hash := argon2.IDKey([]byte(newExec.Password), salt, 1, 64*1024, 4, 32)
-		// To encode the salt
-		saltBase64 := base64.StdEncoding.EncodeToString(salt)
-		hashBase64 := base64.StdEncoding.EncodeToString(hash)
-
-		encodedHash := fmt.Sprintf("%s.%s", saltBase64, hashBase64)
-		// To override the password field with the hashed password
-		newExec.Password = encodedHash
 
 		values := utils.GetStructValues(newExec)
 		res, err := stmt.Exec(values...)
@@ -247,7 +225,7 @@ func AddExecsHandler(w http.ResponseWriter, r *http.Request) {
 
 		newExec.ID = int(lastID)
 		// To add to the exec list
-		addedExecss[i] = newExec
+		addedExecs[i] = newExec
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -258,8 +236,8 @@ func AddExecsHandler(w http.ResponseWriter, r *http.Request) {
 		Data   []models.Exec `json:"data"`
 	}{
 		Status: "success",
-		Count:  len(addedExecss),
-		Data:   addedExecss,
+		Count:  len(addedExecs),
+		Data:   addedExecs,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -572,43 +550,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parts := strings.Split(user.Password, ".")
-	if len(parts) != 2 {
-		utils.ErrorHandler(errors.New("❌ invalid Encoded hash format"), "❌ Invalid Encoded hash format")
-		http.Error(w, "❌ invalid Encoded hash format", http.StatusForbidden)
-		return
-	}
-
-	saltBase64 := parts[0]
-	hashedPasswordBase64 := parts[1]
-
-	salt, err := base64.StdEncoding.DecodeString(saltBase64)
+	err = utils.VerifyPassword(req.Password, user.Password)
 	if err != nil {
-		utils.ErrorHandler(err, "❌ failed to decode the salt")
-		http.Error(w, "❌ failed to decode the salt", http.StatusForbidden)
-		return
-	}
-
-	hashedPassword, err := base64.StdEncoding.DecodeString(hashedPasswordBase64)
-	if err != nil {
-		utils.ErrorHandler(err, "❌ failed to decode the hashed password")
-		http.Error(w, "❌ failed to decode the hashed password", http.StatusForbidden)
-		return
-	}
-
-	// For Hashing
-	hash := argon2.IDKey([]byte(req.Password), salt, 1, 64*1024, 4, 32)
-	if len(hash) != len(hashedPassword) {
-		utils.ErrorHandler(errors.New("❌ incorrect password"), "❌ incorrect password")
-		http.Error(w, "❌ incorrect password", http.StatusForbidden)
-		return
-	}
-
-	if subtle.ConstantTimeCompare(hash, hashedPassword) == 1 {
-		// do nothing
-	} else {
-		utils.ErrorHandler(errors.New("❌ incorrect password"), "❌ incorrect password")
-		http.Error(w, "❌ incorrect password", http.StatusForbidden)
+		http.Error(w, "❌ Incorrect Username or password", http.StatusUnauthorized)
 		return
 	}
 
@@ -630,17 +574,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "test",
-		Value:    "testing",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		Expires:  time.Now().Add(72 * time.Hour),
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	// Request Body
+	// Response Body
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	response := struct {
@@ -665,4 +599,93 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"message": "Logged out successfully"}`))
+}
+
+func UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	userId, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "❌ Invalid exec ID", http.StatusBadRequest)
+		return
+	}
+
+	var req models.UpdatePasswordRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "❌ Invalid Request Body", http.StatusBadRequest)
+		return
+	}
+	r.Body.Close()
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		http.Error(w, "❌ Please enter password", http.StatusBadRequest)
+		return
+	}
+
+	db, err := sqlconnect.ConnectDB()
+	if err != nil {
+		utils.ErrorHandler(err, "❌ database connection error")
+		return
+	}
+	defer db.Close()
+
+	var username string
+	var userPassword string
+	var userRole string
+
+	err = db.QueryRow("SELECT username, password, role FROM execs WHERE id = ?", userId).Scan(&username, &userPassword, &userRole)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ user not found")
+		return
+	}
+
+	err = utils.VerifyPassword(req.CurrentPassword, userPassword)
+	if err != nil {
+		// utils.ErrorHandler(err, "❌ the password you entered does not match the current password")
+		http.Error(w, "❌ the password you entered does not match the current password", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ internal error")
+		return
+	}
+
+	currentTime := time.Now().Format(time.RFC3339)
+
+	_, err = db.Exec("UPDATE execs SET password = ?, password_changed_at = ? WHERE id = ?", hashedPassword, currentTime, userId)
+	if err != nil {
+		utils.ErrorHandler(err, "❌ failed to update the password")
+		return
+	}
+
+	// // To send a new token
+	// token, err := utils.SignToken(userId, username, userRole)
+	// if err != nil {
+	// 	utils.ErrorHandler(err, "❌ Password updated. Could not create token")
+	// 	return
+	// }
+
+	// // To send token as response or as a cookie
+	// http.SetCookie(w, &http.Cookie{
+	// 	Name:     "Bearer",
+	// 	Value:    token,
+	// 	Path:     "/",
+	// 	HttpOnly: true,
+	// 	Secure:   true,
+	// 	Expires:  time.Now().Add(72 * time.Hour),
+	// 	SameSite: http.SameSiteStrictMode,
+	// })
+
+	// Response Body
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	response := struct {
+		Message string `json:"message"`
+	}{
+		Message: "Password updated successfully",
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
